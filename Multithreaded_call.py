@@ -6,7 +6,6 @@ Created on 02/01/2021 19:17
 """
 
 import os
-import time
 import argparse
 from multiprocessing import Process
 
@@ -35,10 +34,10 @@ if __name__ == '__main__':
                         help='Contains the directory of split files that need to be processed iteratively.')
     parser.add_argument('-sp', dest='save_path', type=str,
                         help='Directory for storing multi-process results.')
-    parser.add_argument('-fc', dest='function', type=str,
+    parser.add_argument('-fc', dest='target_function', type=str,
                         help='The target function needs to accept three parameters:'
                              'split_file: str, save_path: str, process_id: str.')
     args = parser.parse_args()
 
-    Multithreaded_call(args.iteration_path, args.function, args.save_path)
+    Multithreaded_call(args.iteration_path, args.target_function, args.save_path)
 
