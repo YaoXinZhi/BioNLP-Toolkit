@@ -7,4 +7,8 @@ Commonly used BioNLP toolkit for myself.
 
 ## PubTator_File_Merge.py
   **description:** Integrate two PubTator files and ensure that the PMID is unique.  
-  **option:** PubTator_file_a, PubTator_file_b, Merge_file.
+  **option:** PubTator_file_a, PubTator_file_b, Merge_file.  
+
+## Multithreaded_call.py  
+  **description:** Multi-process calling target function.  
+  **option:** Iteration_path, save_path, target_function.  
