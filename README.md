@@ -33,3 +33,25 @@ Output: Each line generates a file with a corresponding name, and each file cont
        Breast Ductal Carcinoma	5259919	PMC
        Breast Ductal Carcinoma	4005628	PMC
 ```
+
+## PMC_PMID_to_PubTator.py
+ **get_annotation(pmid_info_path, pubtator_save_path, id_batch_size)**
+  **description:** According to the input ID file, the PubTator annotation files corresponding to PMID and PMC are obtained respectively.
+```
+Input: The input is a folder containing files in the following format, each file contains three columns, namely Term, PMC/PMID and ID Source, where ID Source is "PMID" or "PMC".
+       e.g.
+       Term	PMC/PMID	Source
+       Bladder Urothelial Carcinoma	32292705	PMID
+       Bladder Urothelial Carcinoma	4603215	PMC
+
+OutPut: The output file is PubTator annotation in BioCJson format, you can refer to the following webpage or annotation examples for more details.
+        e.g.
+        PubTator: https://www.ncbi.nlm.nih.gov/research/pubtator/
+        Some examples
+        https://www.ncbi.nlm.nih.gov/research/pubtator-api/publications/export/pubtator?pmids=28483577&concepts=gene
+        https://www.ncbi.nlm.nih.gov/research/pubtator-api/publications/export/biocxml?pmcids=PMC6207735
+        https://www.ncbi.nlm.nih.gov/research/pubtator-api/publications/export/biocjson?pmids=28483577,28483578,28483579
+```
+
+
+
