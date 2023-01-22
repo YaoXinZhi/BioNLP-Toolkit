@@ -12,12 +12,12 @@ PubTator API to get PubTator/Biocjson Annotation
 
 
 import os
-import bs4
-import time
-import string
+# import bs4
+# import time
+# import string
 import requests
 import argparse
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup
 
 
 def read_pmid_info(input_file: str):
@@ -28,6 +28,8 @@ def read_pmid_info(input_file: str):
         f.readline()
         for line in f:
             l = line.strip().split('\t')
+            if l[0] == 'Term':
+                continue
             _id, source = l[1], l[2]
             if source == 'PMID':
                 pmid_set.add(_id)
@@ -48,11 +50,7 @@ def get_HTMLText(url):
     except:
         return ''
 
-def page_parser(url):
-    html = get_HTMLText(url)
-    return html
-
-def id_to_pubtator(id_list: list, id_type: str= 'pmid', batch_size:int=950):
+def id_to_pubtator(id_list: list, save_file: str, id_type: str= 'pmid', batch_size:int=950):
 
     if not isinstance(id_list, list):
         try:
@@ -60,69 +58,119 @@ def id_to_pubtator(id_list: list, id_type: str= 'pmid', batch_size:int=950):
         except:
             raise TypeError(id_list)
 
-    total_annotation = set()
-
     if id_type == 'pmid':
         base_url = f'https://www.ncbi.nlm.nih.gov/research/pubtator-api/publications/export/biocjson?pmids='
     elif id_type == 'pmc':
         base_url = f'https://www.ncbi.nlm.nih.gov/research/pubtator-api/publications/export/biocjson?pmcids='
     else:
-        raise TypeError(id_tpye)
+        raise TypeError(id_type)
 
     start = 0
+    batch_count = 0
+    save_count = 0
+    wf = open(save_file, 'w')
     while True:
+        batch_count += 1
         end = start + batch_size
         batch_id = id_list[start: end]
         # get annotation
         identifiers = ','.join(batch_id)
-        # print(identifiers)
         url = f'{base_url}{identifiers}'
-        # print(url)
-        html = get_HTMLText(url)
-        total_annotation.update(html.split('\n'))
-        print(f'{id_type} Annotation count: {len(total_annotation):,}/{len(id_list):,}.')
 
+        # print(url)
+        # input()
+        html = get_HTMLText(url)
+        batch_annotation = html.split('\n')
+        # print(f'batch_annotation: {len(batch_annotation)}')
+
+        for annotation in batch_annotation:
+            if annotation:
+                save_count += 1
+                wf.write(f'{annotation}\n')
+        # print(f'save count: {save_count:,}')
+        print(f'Batch: {batch_count}, {id_type} ID Saved: {save_count:,}.')
         start = end
         if end >= len(id_list):
             break
-    if '' in total_annotation:
-        total_annotation.remove('')
 
-    return total_annotation
+    wf.close()
+    print(f'{save_file} save done, Save Count: {save_count:,}/{len(id_list):,}')
+    return save_count
+
+def read_pmc_pmid_file(pmc_pmid_file: str):
+
+    pmid_set = set()
+    pmc_set = set()
+    with open(pmc_pmid_file) as f:
+        for line in f:
+            l = line.strip()
+            if l.startswith('PMC'):
+                pmc_set.add(l)
+            else:
+                pmid_set.add(l)
+    print(f'{len(pmid_set):,} pmid, {len(pmc_set):,} pmc.')
+    return pmid_set, pmc_set
 
 
-def get_annotation(input_path: str, save_path: str, batch_size:int=10):
+def get_annotation(pmc_pmid_file: str, save_path: str,
+                   _save_type:set, batch_size:int=100,
+                   prefix:str='pubtator-download'):
 
-    id_file_list = os.listdir(input_path)
+    pmid_set, pmc_set = read_pmc_pmid_file(pmc_pmid_file)
 
+    print(pmid_set)
+    print(pmc_set)
+    if _save_type == 'pmid':
+        save_type = {'pmid'}
+    elif _save_type == 'pmc':
+        save_type = {'pmc'}
+    elif _save_type == 'both':
+        save_type = {'pmc', 'pmid'}
+    else:
+        raise ValueError(f'save_type-{_save_type} wrong.')
 
-    for _file in id_file_list:
-        file_prefix = _file.split('.')[0]
-        save_file = f'{save_path}/{file_prefix}.pubtator.txt'
+    pmid_save_file = f'{save_path}/{prefix}.pubtator.pmid.txt'
+    pmc_save_file = f'{save_path}/{prefix}.pubtator.pmc.txt'
 
-        file_path = f'{input_path}/{_file}'
-        pmid_set, pmc_set = read_pmid_info(file_path)
-        print(f'Start File: {_file}, PMID: {len(pmid_set):,}, PMC: {len(pmc_set):,}.')
-
-        pmid_annotation = id_to_pubtator(pmid_set, 'pmid', batch_size)
-        print(f'{file_prefix} PMID-PubTator: {len(pmid_annotation):,}/{len(pmid_set)}.')
-        pmc_annotation = id_to_pubtator(pmc_set, 'pmc', batch_size)
-        print(f'{file_prefix} PMC-PubTator: {len(pmc_annotation):,}/{pmc_set}.')
-
-        with open(save_file, 'w', encoding='utf-8') as wf:
-            for ann in pmid_annotation|pmc_annotation:
-                wf.write(f'{ann}\n')
-        print(f'{save_file} save done,'
-              f' PubTator Count: {len(pmid_annotation|pmc_annotation):,}/{len(pmid_set|pmc_set):,}')
-
+    if 'pmid' in save_type:
+        # if not os.path.exists(pmid_save_file):
+        pmid_save_count = id_to_pubtator(pmid_set, pmid_save_file, 'pmid', batch_size)
+        print(f'{prefix} PMID-PubTator: {pmid_save_count:,}/{len(pmid_set)}.')
+    if 'pmc' in save_type:
+        # if not os.path.exists(pmc_save_file):
+            # pmcid_set = {f'PMC{_id}' for _id in pmc_set}
+        pmc_save_count = id_to_pubtator(pmc_set, pmc_save_file, 'pmc', batch_size)
+        print(f'{prefix} PMC-PubTator: {pmc_save_count:,}/{len(pmc_set)}.')
 
 
 if __name__ == '__main__':
-    pmid_info_path = '../data/pmid_info'
-    pubtator_save_path = '../data/pubtator_info'
-    id_batch_size = 100
 
-    if os.path.exists(pubtator_save_path):
-        os.mkdir(pubtator_save_path)
+    parser = argparse.ArgumentParser(description='Lit-GWAS Bayes model.')
 
-    get_annotation(pmid_info_path, pubtator_save_path, id_batch_size)
+    parser.add_argument('-ip', dest='pmc_pmid_file',
+                        default='../data/APOE_dir/APOE_id_info',
+                        help='default: ../data/APOE_dir/APOE_id_info')
+
+    parser.add_argument('-sp', dest='pubtator_save_path',
+                        default='../data/APOE_dir/APOE_bioc',
+                        help='default: ../data/APOE_dir/APOE_bioc')
+
+    parser.add_argument('-it', dest='id_type',
+                        default='both', choices=['pmid', 'pmc', 'both'],
+                        help='default: both')
+
+    parser.add_argument('-pr', dest='prefix',
+                        default='pubtator-download')
+
+    parser.add_argument('-bs', dest='batch_size', type=int,
+                        default=3,
+                        help='default: 3')
+
+    args = parser.parse_args()
+
+
+    if not os.path.exists(args.pubtator_save_path):
+        os.mkdir(args.pubtator_save_path)
+
+    get_annotation(args.pmc_pmid_file, args.pubtator_save_path,
+                   args.id_type, args.batch_size, args.prefix)

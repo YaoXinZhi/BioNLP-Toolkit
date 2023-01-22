@@ -10,7 +10,9 @@ import os
 import json
 import requests
 
-def getid(searchTerm, db='pubmed'):  # 用疾病名字去数据库自动获取相关文献的id
+import argparse
+
+def getid(searchTerm, db='pubmed'):
     try:
         import xml.etree.cElementTree as ET
     except ImportError:
@@ -46,9 +48,9 @@ def get_id(token_file: str, save_path: str):
     Input: Term MeSH
     Output: Term    PMC/PMID    Source
     """
-
+    print(f'TokenFile: {token_file}')
     with open(token_file, encoding='utf-8') as f:
-        f.readline()
+        #f.readline()
         for line in f:
             total_id = set()
 
@@ -68,6 +70,7 @@ def get_id(token_file: str, save_path: str):
                 print(f'Token PMC/PMID Count: {len(total_id)}')
 
             save_file = f'{save_path}/{l[0]}.pmc.pmid.txt'
+            print(f'Save file: {save_file}')
             with open(save_file, 'w', encoding='utf-8') as wf:
                 wf.write('Term\tPMC/PMID\tSource\n')
                 for _id, source in total_id:
@@ -100,16 +103,26 @@ def extract_pmc_pmid(input_path: str, save_file: str):
 
 
 if __name__ == '__main__':
-    id_file = '../data/PanCancer_ID/TCGA-33.MESH.txt'
 
-    pmid_save_path = '../data/pmid_info'
+    parser = argparse.ArgumentParser(description='Lit-GWAS Bayes model.')
 
-    total_id_save_file = '../data/PanCancer_ID/Total.PMC-PMID.txt'
+    parser.add_argument('-if', dest='id_file',
+                        default='../data/APOE_dir/APOE.keyword.txt',
+                        help='default: ../data/APOE_dir/APOE.keyword.txt')
 
-    if not os.path.exists(pmid_save_path):
-        os.mkdir(pmid_save_path)
+    parser.add_argument('-sp', dest='pmid_save_path',
+                        default='../data/APOE_dir/APOE_id_info',
+                        help='default: ../data/APOE_dir/APOE_id_info')
 
-    # get_id(id_file, pmid_save_path)
-    extract_pmc_pmid(pmid_save_path, total_id_save_file)
+    args = parser.parse_args()
+
+    # id_file = '../data/APOE_dir/APOE.keyword.txt'
+    # pmid_save_path = '../data/APOE_dir/APOE_id_info'
+
+    if not os.path.exists(args.pmid_save_path):
+        os.mkdir(args.pmid_save_path)
+
+    print('get id')
+    get_id(args.id_file, args.pmid_save_path)
 
 
